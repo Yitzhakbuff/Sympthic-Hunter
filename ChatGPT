@@ -1,0 +1,78 @@
+using System;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+
+public class OpenAIRequest
+{
+    public string model { get; set; }
+    public OpenAIMessage[] messages { get; set; }
+    public double temperature { get; set; }
+}
+
+public class OpenAIMessage
+{
+    public string role { get; set; }
+    public string content { get; set; }
+}
+
+public class ChatGPTClient
+{
+    private const string OpenAIKey = "sk-proj-N7Z4bNUPygcK7ci28jvjT3BlbkFJ9fYrNTYvdUD9cafiO8RO";
+    private const string Endpoint = "https://api.openai.com/v1/chat/completions";
+
+    public async Task<string> AskChatGPT(string userMessage)
+    {
+        try
+        {
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {OpenAIKey}");
+
+                var request = new OpenAIRequest
+                {
+                    model = "gpt-3.5-turbo",
+                    messages = new OpenAIMessage[]
+                    {
+                        new OpenAIMessage { role = "user", content = userMessage }
+                    },
+                    temperature = 0.7
+                };
+
+                var jsonRequest = JsonSerializer.Serialize(request);
+                var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+
+                var response = await client.PostAsync(Endpoint, content);
+
+                response.EnsureSuccessStatusCode(); // Throw if not success
+
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                return jsonResponse;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            return null;
+        }
+    }
+}
+
+// En tu programa principal o método de inicio:
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        try
+        {
+            var chatgpt = new ChatGPTClient();
+            var response = await chatgpt.AskChatGPT("Say this is a test!");
+            Console.WriteLine(response);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in main program: {ex.Message}");
+        }
+    }
+}
